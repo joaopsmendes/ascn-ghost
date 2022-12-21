@@ -5,7 +5,7 @@ all:
   # GKE cluster variables
   gcp_project: ascn-ghost-369311                       # ID of GCP Project
   gcp_auth_kind: serviceaccount                        # Do not change
-  gcp_cred_file: /home/diogo/git_workspace/ascn-ghost/Codebase/inventory/ascn-ghost-369311-ee643cb8f39f.json   # Path to service account keys (json file downloaded from GCP)
+  gcp_cred_file: /home/diogo/git_workspace/ascn-ghost/Codebase/inventory/ascn-ghost-369311-d9872ded7df3.json   # Path to service account keys (json file downloaded from GCP)
 
   gcp_zone: us-central1-a
   gcp_image_type: ubuntu_containerd
