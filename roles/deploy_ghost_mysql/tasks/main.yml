@@ -4,7 +4,8 @@
     name: "{{ item }}"
     state: latest
   loop: "{{ db_packages }}"
-#/*bind adress??*/
+
+#bind adress??
 
 - name: Create Ghost database
   mysql_db: name={{ app_db_name }} state=present
