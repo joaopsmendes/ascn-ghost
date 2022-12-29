@@ -26,17 +26,17 @@ spec:
         - name: MYSQL_ALLOW_EMPTY_PASSWORD
           value: "true"
         - name: MYSQL_DATABASE
-          value: "{{ db_name }}"
+          value: ghost
         - name: MYSQL_USER
-          value: "{{ db_user }}"
+          value: ghostuser
         - name: MYSQL_PASSWORD
-          value: "{{ db_pass }}" # Use Secret object in real usage
+          value: "123456" # Use Secret object in real usage
         ports:
         - containerPort: 3306
-        volumeMounts:
-        - name: mysql-persistent-storage
-          mountPath: /var/lib/mysql
-      volumes:
-      - name: mysql-persistent-storage
-        persistentVolumeClaim:
-          claimName: mysql-pv-claim
+#        volumeMounts:
+#        - name: mysql-persistent-storage
+#          mountPath: /var/lib/mysql
+#      volumes:
+#      - name: mysql-persistent-storage
+#        persistentVolumeClaim:
+#          claimName: mysql-pv-claim

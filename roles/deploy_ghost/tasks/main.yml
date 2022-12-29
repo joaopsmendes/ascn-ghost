@@ -1,0 +1,28 @@
+---
+
+
+
+- name: MySQL Deployment
+  kubernetes.core.k8s:
+    state: present
+    src: mysql/mysql-deployment.yml
+
+- name: MySQL Service
+  kubernetes.core.k8s:
+    state: present
+    src: mysql/mysql-service.yml 
+
+#- name: MySQL Persistent Volume Claim
+#  kubernetes.core.k8s:
+#    state: present
+#    src: mysql/mysql-pvc.yml
+
+- name: Ghost Deployment
+  kubernetes.core.k8s:
+    state: present
+    src: ghost/ghost-deployment.yml
+
+- name: Ghost Service
+  kubernetes.core.k8s:
+    state: present
+    src: ghost/ghost-service.yml 

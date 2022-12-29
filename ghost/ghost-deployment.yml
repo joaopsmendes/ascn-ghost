@@ -1,0 +1,37 @@
+---
+# Deployment for MySQL
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ghost-deployment
+  labels:
+    app: ghost
+    tier: application
+spec:
+  selector:
+    matchLabels:
+      app: ghost
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: ghost
+        tier: application
+    spec:
+      containers:
+      - name: ghost
+        image: ghost:latest
+        env: # The variables below could be set on a ConfigMap object
+          - name : database__client
+            value: mysql
+          - name: database__connection__host
+            value: mysql-service
+          - name: database__connection__user
+            value: ghostuser
+          - name: database__connection__password
+            value: "123456"
+          - name: database__connection__database
+            value: ghost
+        ports:
+        - containerPort: 2368

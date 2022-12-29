@@ -1,0 +1,16 @@
+---
+# Service for exposing MySQL
+apiVersion: v1
+kind: Service
+metadata:
+  name: ghost-service # logical name of the service, which will also become the DNS name of the service when it is created.
+  labels:
+    app: ghost
+    tier: application
+spec:
+  type: NodePort
+  selector:
+    app: ghost
+  ports:
+    - targetPort: 2368 # port that containers are listening on
+      port: 2368 # port number exposed internally in the cluster
