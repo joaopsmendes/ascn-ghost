@@ -8,9 +8,10 @@ metadata:
     app: ghost
     tier: application
 spec:
-  type: NodePort
+  type: LoadBalancer
+  loadBalancerIP: 34.122.151.178
   selector:
     app: ghost
   ports:
-    - targetPort: 2368 # port that containers are listening on
-      port: 2368 # port number exposed internally in the cluster
+    - port: 2368
+      targetPort: 2368

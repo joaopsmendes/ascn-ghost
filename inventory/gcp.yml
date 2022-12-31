@@ -17,7 +17,9 @@ all:
   # APP variables
   ghost_ip: <GHOST_SERVICE_IP>     # Needs to be updated
   ghost_port: <GHOST_PORT>         # Needs to be updated
+  ghost_address: <GHOST_ADDRESS>   # Needs to be updated
 
 
   # Additional variables
-  # ...
+
+  delete_data: false

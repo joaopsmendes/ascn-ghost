@@ -3,3 +3,9 @@
 db_packages:
   - mysql-server
   - python3-mysqldb
+
+
+admin_name: ascn
+admin_pass: ascn123
+admin_email: ascn@example.com
+pass_hash: <PASS_HASH>

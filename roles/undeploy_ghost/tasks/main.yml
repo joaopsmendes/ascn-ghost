@@ -1,0 +1,61 @@
+---
+
+
+
+- name: Replace ghost-deployment.yml
+  ansible.builtin.replace:
+    path: ghost/ghost-deployment.yml
+    regexp: "value: http://.*:2368"
+    replace: 'value: <IP>'
+
+- name: Delete GCP address
+  google.cloud.gcp_compute_address:
+    name: ghost-address
+    region: us-central1
+    project: "{{ gcp_project }}"
+    auth_kind: "{{ gcp_auth_kind }}"
+    service_account_file: "{{ gcp_cred_file }}"
+    state: absent
+
+- name: Get Mysql Pod Name
+  ansible.builtin.shell: kubectl get pods -l app=mysql -o jsonpath='{.items[0].metadata.name}'
+  register: mysql_pod_name
+
+
+- name: Delete MySQL database
+  ansible.builtin.shell: kubectl exec -it {{ mysql_pod_name.stdout }} -- mysql -u'ghostuser' -p'password' -e "drop database ghost;"
+  when: delete_data
+
+
+- name: MySQL Deployment
+  #become: yes
+  ansible.builtin.shell: kubectl delete -f mysql/mysql-deployment.yml
+
+
+- name: Delete Persistent Volume Claim
+  ansible.builtin.shell: kubectl delete -f mysql/mysql-pvc.yml
+
+
+- name: Delete Persistent Volume
+  ansible.builtin.shell: kubectl delete -f mysql/persistent-volume.yml
+
+- name: MySQL Service
+  #become: yes
+  ansible.builtin.shell: kubectl delete -f mysql/mysql-service.yml
+
+#- name: MySQL Persistent Volume Claim
+#  kubernetes.core.k8s:
+#    state: present
+#    src: mysql/mysql-pvc.yml
+
+- name: Ghost Deployment
+  #become: yes
+  ansible.builtin.shell: kubectl delete -f ghost/ghost-deployment.yml
+
+
+- name: Ghost Service
+  #become: yes
+  ansible.builtin.shell: kubectl delete -f ghost/ghost-service.yml
+
+
+
