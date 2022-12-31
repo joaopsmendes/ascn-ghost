@@ -9,9 +9,9 @@ metadata:
     tier: application
 spec:
   type: LoadBalancer
-  loadBalancerIP: 34.122.151.178
+  loadBalancerIP: 
   selector:
     app: ghost
   ports:
-    - port: 2368
-      targetPort: 2368
+    - port: <port>
+      targetPort: <port>

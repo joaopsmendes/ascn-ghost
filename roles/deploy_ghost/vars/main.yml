@@ -8,4 +8,8 @@ db_packages:
 admin_name: ascn
 admin_pass: ascn123
 admin_email: ascn@example.com
+mailUser: <MAIL_USER>
+mailPassword: <MAIL_PASSWORD>
 pass_hash: <PASS_HASH>
+
+ghost_port: 2368

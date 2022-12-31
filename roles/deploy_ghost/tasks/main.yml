@@ -1,19 +1,62 @@
 ---
+#
+#- name: Create GCP address
+#  google.cloud.gcp_compute_address:
+#    name: ghost-address
+#    region: us-central1
+#    project: "{{ gcp_project }}"
+#    auth_kind: "{{ gcp_auth_kind }}"
+#    service_account_file: "{{ gcp_cred_file }}"
+#    state: present
+#  register: ghost_address
+#
+#- name: debug
+#  ansible.builtin.debug:
+#    msg: "http://{{ ghost_address.address }}"
 
-- name: Create GCP address
-  google.cloud.gcp_compute_address:
-    name: ghost-address
-    region: us-central1
-    project: "{{ gcp_project }}"
-    auth_kind: "{{ gcp_auth_kind }}"
-    service_account_file: "{{ gcp_cred_file }}"
-    state: present
-  register: ghost_address
 
-- name: debug
-  ansible.builtin.debug:
-    msg: "http://{{ ghost_address.address }}"
+- name: Create ghost directory
+  ansible.builtin.file:
+    path: ghost
+    state: directory
 
+- name: copy file from templates to ghost
+  ansible.builtin.copy:
+    src: "templates/{{ item }}"
+    dest: ghost/
+  with_items:
+    - ghost-deployment.yml
+    - ghost-service.yml
+
+- name: get mail user
+  ansible.builtin.shell: grep user -A 1 inventory/mail_credentials.txt | tail -n 1  
+  register: mailUser
+
+- name: get mail password
+  ansible.builtin.shell: grep pass -A 1  inventory/mail_credentials.txt | tail -n 1  
+  register: mailPassword
+
+
+- name: Replace Mail user
+  ansible.builtin.replace:
+    path: ghost/ghost-deployment.yml
+    regexp: 'value: <mail_user>'
+    replace: "value: {{ mailUser.stdout }}"
+
+- name: Replace Mail password
+  ansible.builtin.replace:
+    path: ghost/ghost-deployment.yml
+    regexp: 'value: <mail_password>'
+    replace: "value: {{ mailPassword.stdout }}"
+
+- name: Replace port number
+  ansible.builtin.replace:
+    path: ghost/{{ item }}
+    regexp: '<port>'
+    replace: "{{ ghost_port }}"
+  with_items: 
+    - ghost-deployment.yml
+    - ghost-service.yml
 
 - name: Replace ghost-service.yml
   ansible.builtin.replace:
@@ -28,75 +71,75 @@
     replace: "value: http://{{ ghost_address.address }}:2368"
 
 
-- name: Create Persistent Volume
-  ansible.builtin.shell: kubectl apply -f mysql/persistent-volume.yml
+# - name: Create Persistent Volume
+#   ansible.builtin.shell: kubectl apply -f mysql/persistent-volume.yml
 
-- name: MySQL Deployment
-  #become: yes
-  ansible.builtin.shell: kubectl apply -f mysql/mysql-deployment.yml
+# - name: MySQL Deployment
+#   #become: yes
+#   ansible.builtin.shell: kubectl apply -f mysql/mysql-deployment.yml
 
-- name: Persistent Volume Claim
-  ansible.builtin.shell: kubectl apply -f mysql/mysql-pvc.yml
+# - name: Persistent Volume Claim
+#   ansible.builtin.shell: kubectl apply -f mysql/mysql-pvc.yml
 
-- name: MySQL Service
-  #become: yes
-  ansible.builtin.shell: kubectl apply -f mysql/mysql-service.yml
-
-
-
-- name: Get Mysql Pod Name
-  ansible.builtin.shell: kubectl get pods -l app=mysql -o jsonpath='{.items[0].metadata.name}'
-  register: mysql_pod_name
-
-- name: Debug Mysql Pod Name
-  ansible.builtin.debug:
-    msg: "{{ mysql_pod_name.stdout }}"
+# - name: MySQL Service
+#   #become: yes
+#   ansible.builtin.shell: kubectl apply -f mysql/mysql-service.yml
 
 
-- name: Calculate Hash da password with python
-  ansible.builtin.shell: python3 -c 'import bcrypt; print(bcrypt.hashpw(b"{{ admin_pass }}", bcrypt.gensalt(rounds=10)).decode("ascii"))'
-  register: hash_pass
 
-- name: Replace $ with \$ in hash_pass
-  ansible.builtin.shell: python3 -c 'x="{{ hash_pass.stdout }}".replace("$","\$");print(x)'
-  register: hash_pass
+# - name: Get Mysql Pod Name
+#   ansible.builtin.shell: kubectl get pods -l app=mysql -o jsonpath='{.items[0].metadata.name}'
+#   register: mysql_pod_name
 
-- name: Debug Hash da password
-  ansible.builtin.debug:
-    msg: "{{ hash_pass.stdout }}"
+# - name: Debug Mysql Pod Name
+#   ansible.builtin.debug:
+#     msg: "{{ mysql_pod_name.stdout }}"
 
 
-#- name: MySQL Persistent Volume Claim
-#  kubernetes.core.k8s:
-#    state: present
-#    src: mysql/mysql-pvc.yml
+# - name: Calculate Hash da password with python
+#   ansible.builtin.shell: python3 -c 'import bcrypt; print(bcrypt.hashpw(b"{{ admin_pass }}", bcrypt.gensalt(rounds=10)).decode("ascii"))'
+#   register: hash_pass
 
-- name: Ghost Deployment
-  #become: yes
-  ansible.builtin.shell: kubectl apply -f ghost/ghost-deployment.yml
+# - name: Replace $ with \$ in hash_pass
+#   ansible.builtin.shell: python3 -c 'x="{{ hash_pass.stdout }}".replace("$","\$");print(x)'
+#   register: hash_pass
 
-
-- name: Ghost Service
-  #become: yes
-  ansible.builtin.shell: kubectl apply -f ghost/ghost-service.yml
-
-- name: Wait for app pod to be ready
-  ansible.builtin.shell: kubectl wait --for=condition=Ready pods --selector tier=application --timeout=600s
+# - name: Debug Hash da password
+#   ansible.builtin.debug:
+#     msg: "{{ hash_pass.stdout }}"
 
 
-- name: Wait for database pod to be ready
-  ansible.builtin.shell: kubectl wait --for=condition=Ready pods --selector tier=database --timeout=600s
+# #- name: MySQL Persistent Volume Claim
+# #  kubernetes.core.k8s:
+# #    state: present
+# #    src: mysql/mysql-pvc.yml
 
-- name: Select users from database
-  ansible.builtin.shell: kubectl exec {{ mysql_pod_name.stdout }} -- mysql -u'ghostuser' -p'password' -e "use ghost;select * from users;"
-  register: mysql_user
-  until: mysql_user.stdout != ""
-  retries: 10
+# - name: Ghost Deployment
+#   #become: yes
+#   ansible.builtin.shell: kubectl apply -f ghost/ghost-deployment.yml
 
-- name: Debug mysql_user
-  ansible.builtin.debug:
-    msg: "{{ mysql_user.stdout }}"
 
-- name: Add an user to database
-  ansible.builtin.shell: kubectl exec {{ mysql_pod_name.stdout }} -- mysql -u'ghostuser' -p'password' -e "use ghost;update users set name='{{ admin_name }}', password='{{ hash_pass.stdout }}', email='{{ admin_email }}', status='active' where id=1;"
-  register: mysql_user
+# - name: Ghost Service
+#   #become: yes
+#   ansible.builtin.shell: kubectl apply -f ghost/ghost-service.yml
+
+# - name: Wait for app pod to be ready
+#   ansible.builtin.shell: kubectl wait --for=condition=Ready pods --selector tier=application --timeout=600s
+
+
+# - name: Wait for database pod to be ready
+#   ansible.builtin.shell: kubectl wait --for=condition=Ready pods --selector tier=database --timeout=600s
+
+# - name: Select users from database
+#   ansible.builtin.shell: kubectl exec {{ mysql_pod_name.stdout }} -- mysql -u'ghostuser' -p'password' -e "use ghost;select * from users;"
+#   register: mysql_user
+#   until: mysql_user.stdout != ""
+#   retries: 10
+
+# - name: Debug mysql_user
+#   ansible.builtin.debug:
+#     msg: "{{ mysql_user.stdout }}"
+
+# - name: Add an user to database
+#   ansible.builtin.shell: kubectl exec {{ mysql_pod_name.stdout }} -- mysql -u'ghostuser' -p'password' -e "use ghost;update users set name='{{ admin_name }}', password='{{ hash_pass.stdout }}', email='{{ admin_email }}', status='active' where id=1;"
+#   register: mysql_user
