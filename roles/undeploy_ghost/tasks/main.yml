@@ -1,16 +1,12 @@
 ---
 
-- name: remove ghost files
-  ansible.builtin.file:
-    path: ghost
-    state: absent
 
 
-- name: Replace ghost-deployment.yml
-  ansible.builtin.replace:
-    path: ghost/ghost-deployment.yml
-    regexp: "value: http://.*:2368"
-    replace: 'value: <IP>'
+#- name: Replace ghost-deployment.yml
+#  ansible.builtin.replace:
+#    path: ghost/ghost-deployment.yml
+#    regexp: "value: http://.*:2368"
+#    replace: 'value: <IP>'
 
 - name: Delete GCP address
   google.cloud.gcp_compute_address:
@@ -61,5 +57,9 @@
   #become: yes
   ansible.builtin.shell: kubectl delete -f ghost/ghost-service.yml
 
+- name: remove ghost files
+  ansible.builtin.file:
+    path: ghost
+    state: absent
 
 

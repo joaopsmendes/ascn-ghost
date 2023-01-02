@@ -1,17 +1,17 @@
 ---
 
 - name: Create GCP address
- google.cloud.gcp_compute_address:
+  google.cloud.gcp_compute_address:
    name: ghost-address
    region: us-central1
    project: "{{ gcp_project }}"
    auth_kind: "{{ gcp_auth_kind }}"
    service_account_file: "{{ gcp_cred_file }}"
    state: present
- register: ghost_address
+  register: ghost_address
 
 - name: debug
- ansible.builtin.debug:
+  ansible.builtin.debug:
    msg: "http://{{ ghost_address.address }}"
 
 - name: Create ghost directory
@@ -27,26 +27,30 @@
     - ghost-deployment.yml
     - ghost-service.yml
 
-- name: get mail user
-  ansible.builtin.shell: grep user -A 1 inventory/mail_credentials.txt | tail -n 1  
-  register: mailUser
+# - name: get mail user
+#   ansible.builtin.shell: grep user -A 1 inventory/mail_credentials.txt | tail -n 1  
+#   register: mailUser
 
-- name: get mail password
-  ansible.builtin.shell: grep pass -A 1  inventory/mail_credentials.txt | tail -n 1  
-  register: mailPassword
+# - name: get mail password
+#   ansible.builtin.shell: grep pass -A 1  inventory/mail_credentials.txt | tail -n 1  
+#   register: mailPassword
 
+
+- name: debug vault
+  ansible.builtin.debug:
+    msg: "{{ mail_user }}"
 
 - name: Replace Mail user
   ansible.builtin.replace:
     path: ghost/ghost-deployment.yml
     regexp: 'value: <mail_user>'
-    replace: "value: {{ mailUser.stdout }}"
+    replace: "value: {{ mail_user }}"
 
 - name: Replace Mail password
   ansible.builtin.replace:
     path: ghost/ghost-deployment.yml
     regexp: 'value: <mail_password>'
-    replace: "value: {{ mailPassword.stdout }}"
+    replace: "value: {{ mail_pass }}"
 
 - name: Replace port number
   ansible.builtin.replace:

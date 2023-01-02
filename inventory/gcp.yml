@@ -23,3 +23,5 @@ all:
   # Additional variables
 
   delete_data: false
+  mail_pass: "{{ vault_mail_pass }}"
+  mail_user: "{{ vault_mail_user }}"
