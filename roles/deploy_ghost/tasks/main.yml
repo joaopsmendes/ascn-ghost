@@ -135,11 +135,11 @@
 
 
 - name: Calculate Hash da password with python
-  ansible.builtin.shell: python3 -c 'import bcrypt; print(bcrypt.hashpw(b"{{ admin_pass }}", bcrypt.gensalt(rounds=10)).decode("ascii"))'
+  ansible.builtin.command: python3 -c 'import bcrypt; print(bcrypt.hashpw(b"{{ admin_pass }}", bcrypt.gensalt(rounds=10)).decode("ascii"))'
   register: hash_pass
 
 - name: Replace $ with \$ in hash_pass
-  ansible.builtin.shell: python3 -c 'x="{{ hash_pass.stdout }}".replace("$","\$");print(x)'
+  ansible.builtin.command: python3 -c 'x="{{ hash_pass.stdout }}".replace("$","\$");print(x)'
   register: hash_pass
 
 - name: Debug Hash da password
