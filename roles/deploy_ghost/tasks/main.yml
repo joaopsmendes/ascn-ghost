@@ -82,29 +82,56 @@
     replace: "value: http://{{ ghost_address.address }}:2368"
 
 
+- name: Create a k8s namespace
+  kubernetes.core.k8s:
+    name: ghost
+    api_version: v1
+    kind: Namespace
+    state: present
+
+
 - name: Create Persistent Volume
-  ansible.builtin.shell: kubectl apply -f mysql/persistent-volume.yml
+  kubernetes.core.k8s:
+    state: present
+    src: mysql/persistent-volume.yml
+    namespace: ghost
 
 - name: MySQL Deployment
-  #become: yes
-  ansible.builtin.shell: kubectl apply -f mysql/mysql-deployment.yml
+  kubernetes.core.k8s:
+    state: present
+    src: mysql/mysql-deployment.yml
+    namespace: ghost
 
 - name: Persistent Volume Claim
-  ansible.builtin.shell: kubectl apply -f mysql/mysql-pvc.yml
+  kubernetes.core.k8s:
+    state: present
+    src: mysql/mysql-pvc.yml
+    namespace: ghost
 
 - name: MySQL Service
-  #become: yes
-  ansible.builtin.shell: kubectl apply -f mysql/mysql-service.yml
+  kubernetes.core.k8s:
+    state: present
+    src: mysql/mysql-service.yml 
+    namespace: ghost 
 
+- name: Search for all Pods labelled app=web
+  kubernetes.core.k8s_info:
+    kind: Pod
+    label_selectors:
+      - app = mysql
+  register: mysql_pod
 
-
-- name: Get Mysql Pod Name
-  ansible.builtin.shell: kubectl get pods -l app=mysql -o jsonpath='{.items[0].metadata.name}'
-  register: mysql_pod_name
-
-- name: Debug Mysql Pod Name
+- name: Debug Mysql Pod
   ansible.builtin.debug:
-    msg: "{{ mysql_pod_name.stdout }}"
+    msg: "{{ mysql_pod.resources[0].metadata.name }}"
+
+# - name: Get Mysql Pod Name
+#   ansible.builtin.shell: kubectl get pods -l app=mysql -o jsonpath='{.items[0].metadata.name}'
+#   register: mysql_pod_name
+
+# - name: Debug Mysql Pod Name
+#   ansible.builtin.debug:
+#     msg: "{{ mysql_pod_name.stdout }}"
 
 
 - name: Calculate Hash da password with python
@@ -121,31 +148,97 @@
 
 
 - name: Ghost Deployment
-  #become: yes
-  ansible.builtin.shell: kubectl apply -f ghost/ghost-deployment.yml
+  kubernetes.core.k8s:
+    state: present
+    src: ghost/ghost-deployment.yml
+    namespace: ghost
 
 
 - name: Ghost Service
-  #become: yes
-  ansible.builtin.shell: kubectl apply -f ghost/ghost-service.yml
+  kubernetes.core.k8s:
+    state: present
+    src: ghost/ghost-service.yml
+    namespace: ghost
 
-- name: Wait for app pod to be ready
-  ansible.builtin.shell: kubectl wait --for=condition=Ready pods --selector tier=application --timeout=600s
+
+# - name: Wait for ghost service to be ready
+#   kubernetes.core.k8s:
+#     wait: yes
+#     wait_timeout: 600
+#     wait_condition:
+#       type: Service
+#       status: "True"
+#       reason: Ready
 
 
-- name: Wait for database pod to be ready
-  ansible.builtin.shell: kubectl wait --for=condition=Ready pods --selector tier=database --timeout=600s
-
-- name: Select users from database
-  ansible.builtin.shell: kubectl exec {{ mysql_pod_name.stdout }} -- mysql -u'ghostuser' -p'password' -e "use ghost;select * from users;"
-  register: mysql_user
-  until: mysql_user.stdout != ""
+- name: Wait for mysql service to be ready
+  kubernetes.core.k8s_info:
+    kind: Pod
+    label_selectors:
+      - app = mysql
+  register: mysql_pod
+  until: mysql_pod.resources[0].status.phase == "Running"
   retries: 10
 
-- name: Debug mysql_user
-  ansible.builtin.debug:
-    msg: "{{ mysql_user.stdout }}"
 
-- name: Add an user to database
-  ansible.builtin.shell: kubectl exec {{ mysql_pod_name.stdout }} -- mysql -u'ghostuser' -p'password' -e "use ghost;update users set name='{{ admin_name }}', password='{{ hash_pass.stdout }}', email='{{ admin_email }}', status='active' where id=1;"
-  register: mysql_user
+- name: Wait for ghost service to be ready
+  kubernetes.core.k8s_info:
+    kind: Pod
+    label_selectors:
+      - app = ghost
+  register: ghost_pod
+  until: ghost_pod.resources[0].status.phase == "Running"
+  retries: 10
+
+- name: debug ghost pod
+  ansible.builtin.debug:
+    msg: "{{ ghost_pod.resources[0].metadata.name }}"
+
+- name: Execute a command
+  kubernetes.core.k8s_exec:
+    namespace: ghost
+    pod: "{{ mysql_pod.resources[0].metadata.name}}"
+    container: mysql
+    command: mysql -u'ghostuser' -p'password' -e "use ghost;select * from users;"
+  register: result
+  until : result.stdout != ""
+  retries: 10
+
+- name: Debug result
+  ansible.builtin.debug:
+    msg: "{{ result.stdout }}"
+
+# - name: Wait for app pod to be ready
+#   ansible.builtin.shell: kubectl wait --for=condition=Ready pods --selector tier=application --timeout=600s
+
+# - name: Wait for database pod to be ready
+#   ansible.builtin.shell: kubectl wait --for=condition=Ready pods --selector tier=database --timeout=600s
+
+# - name: Select users from database
+#   ansible.builtin.shell: kubectl exec {{ mysql_pod_name.stdout }} -- mysql -u'ghostuser' -p'password' -e "use ghost;select * from users;"
+#   register: mysql_user
+#   until: mysql_user.stdout != ""
+#   retries: 10
+
+# - name: Debug mysql_user
+#   ansible.builtin.debug:
+#     msg: "{{ mysql_user.stdout }}"
+
+- name: Execute a command
+  kubernetes.core.k8s_exec:
+    namespace: ghost
+    pod: "{{ mysql_pod.resources[0].metadata.name }}"
+    container: mysql
+    command: mysql -u'ghostuser' -p'password' -e "use ghost;update users set name='{{ admin_name }}', password='{{ hash_pass.stdout }}', email='{{ admin_email }}', status='active' where id=1;"
+
+# - name: Add an user to database
+#   ansible.builtin.shell: kubectl exec {{ mysql_pod_name.stdout }} -- mysql -u'ghostuser' -p'password' -e "use ghost;update users set name='{{ admin_name }}', password='{{ hash_pass.stdout }}', email='{{ admin_email }}', status='active' where id=1;"
+#   register: mysql_user
+
+
+
+- name: Wait for the host to be reachable
+  wait_for:
+    host: "{{ ghost_ip }}"
+    port: "{{ ghost_port }}"
+    timeout: 600

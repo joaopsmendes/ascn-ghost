@@ -17,31 +17,58 @@
     service_account_file: "{{ gcp_cred_file }}"
     state: absent
 
-- name: Get Mysql Pod Name
-  ansible.builtin.shell: kubectl get pods -l app=mysql -o jsonpath='{.items[0].metadata.name}'
-  register: mysql_pod_name
+# - name: Get Mysql Pod Name
+#   ansible.builtin.shell: kubectl get pods -l app=mysql -o jsonpath='{.items[0].metadata.name}'
+#   register: mysql_pod_name
+
+# - name: Delete MySQL database
+#   ansible.builtin.shell: kubectl exec -it {{ mysql_pod_name.stdout }} -- mysql -u'ghostuser' -p'password' -e "drop database ghost;"
+#   when: delete_data
+
+
+- name: Search for all Pods labelled app=web
+  kubernetes.core.k8s_info:
+    kind: Pod
+    label_selectors:
+      - app = mysql
+  register: mysql_pod
 
 
 - name: Delete MySQL database
-  ansible.builtin.shell: kubectl exec -it {{ mysql_pod_name.stdout }} -- mysql -u'ghostuser' -p'password' -e "drop database ghost;"
-  when: delete_data
+  kubernetes.core.k8s_exec:
+    namespace: ghost
+    pod: "{{ mysql_pod.resources[0].metadata.name }}"
+    container: mysql
+    command: mysql -u'ghostuser' -p'password' -e "drop database ghost;"
 
 
-- name: MySQL Deployment
-  #become: yes
-  ansible.builtin.shell: kubectl delete -f mysql/mysql-deployment.yml
+
+- name: Remove MySQL Deployment
+  kubernetes.core.k8s:
+    state: absent
+    namespace: ghost
+    src: mysql/mysql-deployment.yml
+
 
 
 - name: Delete Persistent Volume Claim
-  ansible.builtin.shell: kubectl delete -f mysql/mysql-pvc.yml
+  kubernetes.core.k8s:
+    state: absent
+    namespace: ghost
+    src: mysql/mysql-pvc.yml
 
 
 - name: Delete Persistent Volume
-  ansible.builtin.shell: kubectl delete -f mysql/persistent-volume.yml
+  kubernetes.core.k8s:
+    state: absent
+    namespace: ghost
+    src: mysql/persistent-volume.yml
 
 - name: MySQL Service
-  #become: yes
-  ansible.builtin.shell: kubectl delete -f mysql/mysql-service.yml
+  kubernetes.core.k8s:
+    state: absent
+    namespace: ghost
+    src: mysql/mysql-service.yml
 
 #- name: MySQL Persistent Volume Claim
 #  kubernetes.core.k8s:
@@ -49,17 +76,35 @@
 #    src: mysql/mysql-pvc.yml
 
 - name: Ghost Deployment
-  #become: yes
-  ansible.builtin.shell: kubectl delete -f ghost/ghost-deployment.yml
+  kubernetes.core.k8s:
+    state: absent
+    namespace: ghost
+    src: ghost/ghost-deployment.yml
 
 
 - name: Ghost Service
-  #become: yes
-  ansible.builtin.shell: kubectl delete -f ghost/ghost-service.yml
+  kubernetes.core.k8s:
+    state: absent
+    namespace: ghost
+    src: ghost/ghost-service.yml
 
 - name: remove ghost files
   ansible.builtin.file:
     path: ghost
     state: absent
+
+- name: Get a list of all service objects
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Service
+    namespace: testing
+  register: list
+  until: list.resources | length == 0
+
+- name: Debug list
+  ansible.builtin.debug:
+    msg: "{{ list}}"
+
+
 
 
