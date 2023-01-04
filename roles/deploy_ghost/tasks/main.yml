@@ -1,5 +1,13 @@
 ---
 
+- name: upload gcp credentials
+  copy:
+    src: inventory/gcloud_vault.json
+    dest: inventory/gcloud.json
+    decrypt: yes
+    mode: 0600
+
+
 - name: Create GCP address
   google.cloud.gcp_compute_address:
    name: ghost-address
