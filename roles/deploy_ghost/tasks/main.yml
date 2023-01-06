@@ -1,23 +1,23 @@
 ---
 
-- name: upload gcp credentials
-  copy:
-    src: inventory/gcloud_vault.json
-    dest: inventory/gcloud.json
-    decrypt: yes
-    mode: 0600
+# - name: upload gcp credentials
+#   copy:
+#     src: inventory/gcloud_vault.json
+#     dest: inventory/gcloud.json
+#     decrypt: yes
+#     mode: 0600
 
 
-- name : Google cloud auth
-  ansible.builtin.command: gcloud auth activate-service-account --key-file=inventory/gcloud.json
+# - name : Google cloud auth
+#   ansible.builtin.command: gcloud auth activate-service-account --key-file=inventory/gcloud.json
 
 
-- name: Set project
-  ansible.builtin.command: gcloud config set project my-project
+# - name: Set project
+#   ansible.builtin.command: gcloud config set project my-project
 
 
-- name: Connect to the cluster (update kubeconfig)"
-  shell: gcloud container clusters get-credentials  --project="{{ gcp_project}}"  --zone="{{ gcp_zone }}"  ascn-cluster
+# - name: Connect to the cluster (update kubeconfig)"
+#   shell: gcloud container clusters get-credentials  --project="{{ gcp_project}}"  --zone="{{ gcp_zone }}"  ascn-cluster
 
 
 - name: Create GCP address
