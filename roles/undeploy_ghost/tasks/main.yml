@@ -40,6 +40,7 @@
     pod: "{{ mysql_pod.resources[0].metadata.name }}"
     container: mysql
     command: mysql -u'ghostuser' -p'password' -e "drop database ghost;"
+  when: delete_data
 
 
 

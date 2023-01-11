@@ -1,0 +1,4 @@
+
+
+- name: Benchmark ghost
+  shell: jmeter -n -t benchmark.jmx -l results.log

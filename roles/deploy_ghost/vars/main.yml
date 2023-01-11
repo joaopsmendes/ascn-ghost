@@ -1,8 +1,4 @@
 ---
-#DB settings
-db_packages:
-  - mysql-server
-  - python3-mysqldb
 
 
 admin_name: ascn
@@ -12,4 +8,4 @@ mailUser: <MAIL_USER>
 mailPassword: <MAIL_PASSWORD>
 pass_hash: <PASS_HASH>
 
-ghost_port: 2368
+port_ghost: 2368

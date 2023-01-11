@@ -38,13 +38,13 @@ spec:
           - name: mail__transport
             value: SMTP
           - name: mail__options__service
-            value: Mailgun
+            value: Mailtrap
           - name: mail__options__host
-            value: smtp.mailgun.org
+            value: smtp.mailtrap.io
           - name: mail__options__port
-            value: "465"
+            value: "2525"
           - name: mail__options__secure
-            value: "true"
+            value: "false"
           - name: mail__options__auth__user
             value: <mail_user>
           - name: mail__options__auth__pass

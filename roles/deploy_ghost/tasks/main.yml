@@ -20,88 +20,6 @@
 #   shell: gcloud container clusters get-credentials  --project="{{ gcp_project}}"  --zone="{{ gcp_zone }}"  ascn-cluster
 
 
-- name: Create GCP address
-  google.cloud.gcp_compute_address:
-   name: ghost-address
-   region: us-central1
-   project: "{{ gcp_project }}"
-   auth_kind: "{{ gcp_auth_kind }}"
-   service_account_file: "{{ gcp_cred_file }}"
-   state: present
-  register: ghost_address
-
-- name: debug
-  ansible.builtin.debug:
-   msg: "http://{{ ghost_address.address }}"
-
-- name: Create ghost directory
-  ansible.builtin.file:
-    path: ghost
-    state: directory
-
-- name: copy file from templates to ghost
-  ansible.builtin.copy:
-    src: "templates/{{ item }}"
-    dest: ghost/
-  with_items:
-    - ghost-deployment.yml
-    - ghost-service.yml
-
-# - name: get mail user
-#   ansible.builtin.shell: grep user -A 1 inventory/mail_credentials.txt | tail -n 1  
-#   register: mailUser
-
-# - name: get mail password
-#   ansible.builtin.shell: grep pass -A 1  inventory/mail_credentials.txt | tail -n 1  
-#   register: mailPassword
-
-
-- name: debug vault
-  ansible.builtin.debug:
-    msg: "{{ mail_user }}"
-
-- name: Replace Mail user
-  ansible.builtin.replace:
-    path: ghost/ghost-deployment.yml
-    regexp: 'value: <mail_user>'
-    replace: "value: {{ mail_user }}"
-
-- name: Replace Mail password
-  ansible.builtin.replace:
-    path: ghost/ghost-deployment.yml
-    regexp: 'value: <mail_password>'
-    replace: "value: {{ mail_pass }}"
-
-- name: Replace port number
-  ansible.builtin.replace:
-    path: ghost/{{ item }}
-    regexp: '<port>'
-    replace: "{{ ghost_port }}"
-  with_items: 
-    - ghost-deployment.yml
-    - ghost-service.yml
-
-- name: update ghost port variable
-  ansible.builtin.set_fact:
-    ghost_port: 2368
-
-- name: update ghost ip variable
-  ansible.builtin.set_fact:
-    ghost_ip: "{{ ghost_address.address }}"
-
-- name: Replace ghost-service.yml
-  ansible.builtin.replace:
-    path: ghost/ghost-service.yml
-    regexp: 'loadBalancerIP:.*'
-    replace: "loadBalancerIP: {{ ghost_address.address }}"
-
-- name: Replace ghost-deployment.yml
-  ansible.builtin.replace:
-    path: ghost/ghost-deployment.yml
-    regexp: 'value: <IP>'
-    replace: "value: http://{{ ghost_address.address }}:2368"
-
-
 - name: Create a k8s namespace
   kubernetes.core.k8s:
     name: ghost
@@ -228,32 +146,12 @@
   ansible.builtin.debug:
     msg: "{{ result.stdout }}"
 
-# - name: Wait for app pod to be ready
-#   ansible.builtin.shell: kubectl wait --for=condition=Ready pods --selector tier=application --timeout=600s
-
-# - name: Wait for database pod to be ready
-#   ansible.builtin.shell: kubectl wait --for=condition=Ready pods --selector tier=database --timeout=600s
-
-# - name: Select users from database
-#   ansible.builtin.shell: kubectl exec {{ mysql_pod_name.stdout }} -- mysql -u'ghostuser' -p'password' -e "use ghost;select * from users;"
-#   register: mysql_user
-#   until: mysql_user.stdout != ""
-#   retries: 10
-
-# - name: Debug mysql_user
-#   ansible.builtin.debug:
-#     msg: "{{ mysql_user.stdout }}"
-
-- name: Execute a command
+- name: Update user admin credentials in database
   kubernetes.core.k8s_exec:
     namespace: ghost
     pod: "{{ mysql_pod.resources[0].metadata.name }}"
     container: mysql
     command: mysql -u'ghostuser' -p'password' -e "use ghost;update users set name='{{ admin_name }}', password='{{ hash_pass.stdout }}', email='{{ admin_email }}', status='active' where id=1;"
-
-# - name: Add an user to database
-#   ansible.builtin.shell: kubectl exec {{ mysql_pod_name.stdout }} -- mysql -u'ghostuser' -p'password' -e "use ghost;update users set name='{{ admin_name }}', password='{{ hash_pass.stdout }}', email='{{ admin_email }}', status='active' where id=1;"
-#   register: mysql_user
 
 
 

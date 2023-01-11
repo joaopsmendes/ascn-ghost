@@ -1,0 +1,76 @@
+
+
+- name: Create GCP address
+  google.cloud.gcp_compute_address:
+   name: ghost-address
+   region: us-central1
+   project: "{{ gcp_project }}"
+   auth_kind: "{{ gcp_auth_kind }}"
+   service_account_file: "{{ gcp_cred_file }}"
+   state: present
+  register: ghost_address
+
+- name: debug
+  ansible.builtin.debug:
+   msg: "http://{{ ghost_address.address }}"
+
+
+- name: update ghost port variable
+  ansible.builtin.set_fact:
+    ghost_port: "{{ port_ghost }}"
+
+- name: update ghost ip variable
+  ansible.builtin.set_fact:
+    ghost_ip: "{{ ghost_address.address }}"
+
+
+- name: Create ghost directory
+  ansible.builtin.file:
+    path: ghost
+    state: directory
+
+- name: copy file from templates to ghost
+  ansible.builtin.copy:
+    src: "templates/{{ item }}"
+    dest: ghost/
+  with_items:
+    - ghost-deployment.yml
+    - ghost-service.yml
+
+- name: debug vault
+  ansible.builtin.debug:
+    msg: "{{ mail_user }}"
+
+- name: Replace Mail user
+  ansible.builtin.replace:
+    path: ghost/ghost-deployment.yml
+    regexp: "value: <mail_user>"
+    replace: 'value: "{{ mail_user }}"'
+
+- name: Replace Mail password
+  ansible.builtin.replace:
+    path: ghost/ghost-deployment.yml
+    regexp: "value: <mail_password>"
+    replace: 'value: "{{ mail_pass }}"'
+
+- name: Replace port number
+  ansible.builtin.replace:
+    path: ghost/{{ item }}
+    regexp: "<port>"
+    replace: "{{ ghost_port }}"
+  with_items:
+    - ghost-deployment.yml
+    - ghost-service.yml
+
+- name: Replace ghost-service.yml
+  ansible.builtin.replace:
+    path: ghost/ghost-service.yml
+    regexp: "loadBalancerIP:.*"
+    replace: "loadBalancerIP: {{ ghost_address.address }}"
+
+- name: Replace ghost-deployment.yml
+  ansible.builtin.replace:
+    path: ghost/ghost-deployment.yml
+    regexp: "value: <IP>"
+    replace: "value: http://{{ ghost_address.address }}:2368"
+
