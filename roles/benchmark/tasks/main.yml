@@ -1,4 +1,9 @@
 
+- name: Create benchmark directory
+  ansible.builtin.file:
+    path: benchmark
+    state: directory
+
 - name: copy file from templates to benchmark
   ansible.builtin.copy:
     src: "templates/{{ item }}"
