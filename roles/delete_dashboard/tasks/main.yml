@@ -1,0 +1,11 @@
+
+- name: Get Dashboard ID 
+  shell: gcloud monitoring  dashboards list --format="table(name)" --filter="displayName='Ghost Monitorization'" | tail -n 1
+  register: dashboard_id
+
+- name: debug dashboard id
+  ansible.builtin.debug:
+    msg: "{{ dashboard_id.stdout }}"
+
+- name: Delete dashboard 
+  shell: gcloud monitoring dashboards delete  {{ dashboard_id.stdout }} --quiet

@@ -1,0 +1,41 @@
+
+- name: copy file from templates to benchmark
+  ansible.builtin.copy:
+    src: "templates/{{ item }}"
+    dest: benchmark/
+  with_items:
+  - paginaInicial.jmx
+  - subscribe.jmx
+  - signIn.jmx
+
+- name: debug ghost ip
+  ansible.builtin.debug:
+    msg: "{{ ghost_ip }}"
+
+- name: Replace Ghost IP
+  ansible.builtin.replace:
+    path: "benchmark/{{ item }}"
+    regexp: "#IP#"
+    replace: "{{ ghost_ip }}"
+  with_items:
+  - paginaInicial.jmx
+  - subscribe.jmx
+  - signIn.jmx
+
+- name: Replace Ghost Port
+  ansible.builtin.replace:
+    path: "benchmark/{{ item }}"
+    regexp: "#PORT#"
+    replace: "{{ ghost_port }}"
+  with_items:
+  - paginaInicial.jmx
+  - subscribe.jmx
+  - signIn.jmx
+
+
+- name: Benchmark
+  shell: jmeter -n -t benchmark/{{ item }} -l {{ item }}.log
+  with_items:
+  - subscribe.jmx
+  - paginaInicial.jmx
+  - signIn.jmx

@@ -7,5 +7,4 @@
   roles:
   - setup_ghost
   - deploy_ghost
-  #- create_dashboards
-  #- benchmark_ghost
+  - create_dashboards

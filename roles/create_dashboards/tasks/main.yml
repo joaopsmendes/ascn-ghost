@@ -1,4 +1,4 @@
 
 
 - name: Create dashboard for cpu
-  shell: gcloud monitoring dashboards create --config-from-file=dashboards/cpu.json
+  shell: gcloud monitoring dashboards create --config-from-file=dashboards/dashboard.json
